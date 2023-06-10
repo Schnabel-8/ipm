@@ -1,0 +1,267 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex} 
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\usepackage[noend]{algpseudocode}
+\usepackage{algorithmicx}
+
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+\title{HW2}
+\author{S22001011冯靖轩}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+Implement Primal-dual interior-point method
+
+\section{Primal-dual interior-point method}
+
+\subsection{Problem}
+The convex optimization problems that include inequality constraints:
+$$
+\begin{array}{ll}
+\min & f_0(x) \\
+\text { s.t. } & f_i(x) \leq 0, \quad i=1, \ldots, m \\
+& A x=b
+\end{array}
+$$
+where $f_0, \ldots, f_m: \mathbb{R}^n \rightarrow \mathbb{R}$ are convex and twice continuously differentiable, and $A \in \mathbb{R}^{p \times n}$ with $\operatorname{rank} A=p<n$.
+
+We also assume that the problem is strictly feasible, i.e., $\exists x \in \mathcal{D}$ satisfying $A x=b$ and $f_i(x)<0$ for $i=1, \ldots, m$.
+This means that Slater's constraint qualification holds, and therefore strong duality holds, so there exists dual optimal $\lambda^* \in \mathbb{R}^m, \nu^* \in \mathbb{R}^p$, which together with $x^*$ satisfy the KKT conditions:
+$$
+\begin{aligned}
+A x^*=b, \quad f_i\left(x^*\right) & \leq 0, \quad i=1, \ldots, m \\
+\lambda^* & \geq 0 \\
+\nabla f_0\left(x^*\right)+\sum_{i=1}^m \lambda_i^* \nabla f_i\left(x^*\right)+A^{\top} \nu^* & =0 \\
+\lambda_i^* f_i\left(x^*\right) & =0, \quad i=1, \ldots, m .
+\end{aligned}
+$$
+
+\subsection{Method}
+
+Rewrite the problem (77) and make the inequality constraints implicit in the objective:
+$$
+\begin{array}{ll}
+\min & f_0(x)+\sum_{i=1}^m I_{-}\left(f_i(x)\right) \\
+\text { s.t. } & A x=b,
+\end{array}
+$$
+where
+$$
+I_{-}(u)= \begin{cases}0 & u \leq 0 \\ \infty & u>0\end{cases}
+$$
+
+The basic idea of the barrier method is to approximate the indicator function $I_{-}$by the function
+$$
+\hat{I}_{-}(u)=-(1 / t) \log (-u), \quad \operatorname{dom} \hat{I}_{-}=-\mathbb{R}_{++}
+$$
+where $t$ is a parameter that sets the accuracy of the approximation.
+Obviously, $\hat{I}_{-}$is convex, nondecreasing and differentiable.
+
+
+Substituting $\hat{I}_{-}$for $I_{-}$in (79) gives the approximation
+$$
+\begin{aligned}
+& \min f_0(x)+\sum_{i=1}^m-(1 / t) \log \left(-f_i(x)\right) \\
+& \text { s.t. } A x=b .
+\end{aligned}
+$$
+The function
+$$
+\phi(x)=-\sum_{i=1}^m \log \left(-f_i(x)\right),
+$$
+is called the logarithmic barrier for the problem (77). Its domain is the set of points that satisfy the inequality constraints of (77) strictly:
+$$
+\operatorname{dom} \phi=\left\{x \in \mathbb{R}^n \mid f_i(x)<0, i=1, \ldots, m\right\}
+$$
+
+
+We multiply the objective of (80) by $t$, and consider the equivalent problem
+$$
+\begin{array}{cl}
+\min & t f_0(x)+\phi(x) \\
+\text { s.t. } & A x=b .
+\end{array}
+$$
+We assume problem (82) can be solved via Newton's method, and, that it has a unique solution for each $t>0$.
+
+For $t>0$ we define $x^*(t)=\arg \min _x\left\{t f_0(x)+\phi(x)\right.$ s.t. $\left.A x=b\right\}$ as the solution of (82).
+
+The central path associated with problem (77) is defined as the set of points $\left\{x^*(t) \mid t>0\right\}$, which we call the central points.
+
+Points on the central path are characterized by the following necessary and sufficient conditions: $x^*(t)$ is strictly feasible, i.e., satisfies
+$$
+A x^*(t)=b, \quad f_i\left(x^*(t)\right)<0, i=1, \ldots, m
+$$
+and $\exists \hat{\nu} \in \mathbb{R}^p$ such that
+$$
+\begin{aligned}
+0 & =t \nabla f_0\left(x^*(t)\right)+\nabla \phi\left(x^*(t)\right)+A^{\top} \hat{\nu} \\
+& =t \nabla f_0\left(x^*(t)\right)+\sum_{i=1}^m \frac{1}{-f_i\left(x^*(t)\right)} \nabla f_i\left(x^*(t)\right)+A^{\top} \hat{\nu}
+\end{aligned}
+$$
+holds.
+
+Every central point yields a dual feasible point.
+Define
+$$
+\lambda_i^*(t)=-\frac{1}{t f_i\left(x^*(t)\right)}, \quad i=1, \ldots, m, \quad \nu^*(t)=\frac{\hat{\nu}}{t} .
+$$
+Because $f_i\left(x^*(t)\right)<0, i=1, \ldots, m$, it's clear that $\lambda^*(t)>0$.
+
+
+Since we have assumed that $x^*(t)$ is the unique solution to problem (82) for each $t>0$, a point is equal to $x^*(t)$ if and only if $\exists \lambda, \nu$ such that
+$$
+\begin{aligned}
+A x=b, \quad f_i(x) & \leq 0, \quad i=1, \ldots, m \\
+\lambda & \geq 0 \\
+\nabla f_0(x)+\sum_{i=1}^m \lambda_i \nabla f_i(x)+A^{\top} \nu & =0 \\
+-\lambda_i f_i(x) & =1 / t, \quad i=1, \ldots, m .
+\end{aligned}
+$$
+The only difference between (85) and the KKT condition (78) is that the complementarity condition $-\lambda_i f_i(x)=0$ is replaced by the condition $-\lambda_i f_i(x)=1 / t$
+In particular, for large $t, x^*(t)$ and $\lambda^*(t), \nu^*(t)$ 'almost' satisfy the KKT optimality conditions for the problem (77).
+
+The modified $\mathrm{KKT}$ conditions (87) can be expressed as $r_t(x, \lambda, \nu)=0$, where $t>0$ and
+$$
+r_t(x, \lambda, \nu)=\left[\begin{array}{c}
+\nabla f_0(x)+J[f(x)]^{\top} \lambda+A^{\top} \nu \\
+-\operatorname{diag}(\lambda) f(x)-(1 / t) \mathbf{1} \\
+A x-b
+\end{array}\right] .
+$$
+Here $f: \mathbb{R}^n \rightarrow \mathbb{R}^m$ and $J[f]$ are given by
+$$
+f(x)=\left[\begin{array}{c}
+f_1(x) \\
+\vdots \\
+f_m(x)
+\end{array}\right], \quad J[f(x)]=\left[\begin{array}{c}
+\nabla f_1(x)^{\top} \\
+\vdots \\
+\nabla f_m(x)^{\top}
+\end{array}\right]
+$$
+
+If $x, \lambda, \nu$ satisfy $r_t(x, \lambda, \nu)=0$ (and $\left.f_i(x)<0\right)$, then $x=x^*(t), \lambda=\lambda^*(t)$ and $\nu=\nu^*(t)$
+- The first block component of $r_t$,
+$$
+r_{\text {dual }}=\nabla f_0(x)+J[f(x)]^{\top} \lambda+A^{\top} \nu
+$$
+is called the dual residual.
+- The last block component, $r_{\text {pri }}=A x-b$, is called the primal residual.
+- The middle block
+$$
+r_{\text {cent }}=-\operatorname{diag}(\lambda) f(x)-(1 / t) \mathbf{1}
+$$
+is the centrality residual, i.e., the residual for the modified complementarity condition.
+
+Let $y=(x, \lambda, \nu)$ denote the current point and $\delta_y=\left(\delta_x, \delta_\lambda, \delta_\nu\right)$ denote the Newton step for solving the equation $r_t(x, \lambda, \nu)=0$, for fixed $t$ where $f(x)<0, \lambda>0$
+The Newton step is characterized by
+$$
+r_t\left(y+\delta_y\right) \approx r_t(y)+J\left[r_t(y)\right] \delta_y=0 .
+$$
+
+In terms of $x, \lambda, \nu$, we have
+$$
+\left[\begin{array}{ccc}
+\nabla^2 f_0(x)+\sum_{i=1}^m \lambda_i \nabla^2 f_i(x) & J[f(x)]^{\top} & A^{\top} \\
+-\operatorname{diag}(\lambda) J[f(x)] & -\operatorname{diag}(f(x)) & 0 \\
+A & 0 & 0
+\end{array}\right]\left[\begin{array}{c}
+\delta_x \\
+\delta_\lambda \\
+\delta_\nu
+\end{array}\right]=-\left[\begin{array}{c}
+r_{\text {dual }} \\
+r_{\text {cent }} \\
+r_{\text {pri }}
+\end{array}\right]
+$$
+The primal-dual search direction $\delta_{y_{\mathrm{pd}}}=\left(\delta_{x_{\mathrm{pd}}}, \delta_{\lambda_{\mathrm{pd}}}, \delta_{\nu_{\mathrm{pd}}}\right)$ is defined as the solution of (92).
+
+We define the surrogate duality gap, for any $x$ that satisfies $f(x)<0$ and $\lambda \geq 0$, as
+$$
+\hat{\eta}(x, \lambda)=-f(x)^{\top} \lambda .
+$$
+
+\subsection{Algorithm}
+
+\begin{algorithm}
+    \caption{Primal-dual interior-point method}
+    \begin{algorithmic}[1]
+        \Require{$x$ that satisfies
+$$
+f_1(x)<0, \ldots, f_m(x)<0, \lambda>0, \gamma>1, \epsilon_{\text {feas }}>0, \epsilon>0 \text {. }
+$$}
+
+        \Procedure{Main}{}
+            \While {$\left\|r_{\text {pri }}\right\|_2 \leq \epsilon_{\text {feas }},\left\|r_{\text {dual }}\right\|_2 \leq \epsilon_{\text {feas }}$, and $\hat{\eta} \leq \epsilon$}
+            
+            (1) Determine $t$. Set $t:=\gamma(m / \hat{\eta})$.
+            
+(2) Compute primal-dual search direction $\delta_{y_{\mathrm{pd}}}$.
+
+(3) Line search and update.
+Determine step length $\alpha>0$ and set $y:=y+\alpha \delta_{y_{\mathrm{pd}}}$.
+            \EndWhile
+        \EndProcedure
+    \end{algorithmic}
+    \label{alg:example_alg}
+\end{algorithm}
+
+
+The line search in step 3 is a standard backtracking line search.
+For a step size $\alpha$, let
+$$
+y^{+}=\left[\begin{array}{c}
+x^{+} \\
+\lambda^{+} \\
+\nu^{+}
+\end{array}\right]=\left[\begin{array}{c}
+x \\
+\lambda \\
+\nu
+\end{array}\right]+\alpha\left[\begin{array}{l}
+\delta_{x_{\mathrm{pd}}} \\
+\delta_{\lambda_{\mathrm{pd}}} \\
+\delta_{\nu_{\mathrm{pd}}}
+\end{array}\right]
+$$
+Let
+$$
+\alpha^{\max }=\sup \left\{\alpha \in[0,1] \mid \lambda+\alpha \delta_\lambda \geq 0\right\}=\min \left\{1, \min \left\{\frac{-\lambda_i}{\delta_{\lambda_i}} \mid \delta_{\lambda_i}<0\right\}\right\}
+$$
+to be the largest positive step length that gives $\lambda^{+} \geq 0$.
+
+We start backtracking with $\alpha=0.99 \alpha^{\text {max }}$, and multiply $\alpha$ by $\beta \in(0,1)$ until we have $f\left(x^{+}\right)<0$. We continue multiplying $\alpha$ by $\beta$ until we have
+$$
+\left\|r_t\left(x^{+}, \lambda^{+}, \nu^{+}\right)\right\|_2 \leq(1-\tau \alpha)\left\|r_t(x, \lambda, \nu)\right\|_2 .
+$$
+Here $\tau$ is typically chosen in the range $[0.01,0.1]$.
+
+
+\section{Results}
+
+See "results.pdf"
+
+\section{Result Analysis}
+
+\end{document}
